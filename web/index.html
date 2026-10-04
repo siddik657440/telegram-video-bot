@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Library</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f1115;
+      color: #fff;
+    }
+
+    header {
+      padding: 18px;
+      background: #171a21;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    #status {
+      padding: 15px;
+      text-align: center;
+      color: #aaa;
+    }
+
+    .container {
+      padding: 15px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    .video {
+      background: #191d25;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #292e38;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .category {
+      color: #999;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .views {
+      color: #777;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px;
+      background: #2ea043;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    .empty {
+      text-align: center;
+      color: #999;
+      padding: 40px 10px;
+    }
+
+    .error {
+      color: #ff6b6b;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎬 Video Library</h1>
+</header>
+
+<div class="container">
+  <div id="status">Loading videos...</div>
+  <div id="videos"></div>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<script>
+  const tg = window.Telegram.WebApp;
+
+  tg.ready();
+  tg.expand();
+
+  const status = document.getElementById("status");
+  const videosContainer = document.getElementById("videos");
+
+  async function loadVideos() {
+    try {
+      const response = await fetch("/api/videos");
+
+      if (!response.ok) {
+        throw new Error("Failed to load videos");
+      }
+
+      const videos = await response.json();
+
+      status.style.display = "none";
+
+      if (!videos.length) {
+        videosContainer.innerHTML =
+          '<div class="empty">🎬 No videos available yet.</div>';
+        return;
+      }
+
+      videosContainer.innerHTML = "";
+
+      videos.forEach(video => {
+        const item = document.createElement("div");
+        item.className = "video";
+
+        item.innerHTML = `
+          <div class="title">${escapeHtml(video.title)}</div>
+          <div class="category">
+            📁 ${escapeHtml(video.category || "General")}
+          </div>
+          <div class="views">
+            👁 ${video.views || 0} views
+          </div>
+
+          <button onclick="unlockVideo(${video.id}, this)">
+            🔓 Unlock Video
+          </button>
+        `;
+
+        videosContainer.appendChild(item);
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      status.style.display = "none";
+
+      videosContainer.innerHTML =
+        '<div class="error">❌ Could not load videos.</div>';
+    }
+  }
+
+
+  async function unlockVideo(videoId, button) {
+
+    if (!tg.initData) {
+      alert("Please open this page from Telegram.");
+      return;
+    }
+
+    button.disabled = true;
+    button.innerText = "⏳ Processing...";
+
+    try {
+
+      const response = await fetch("/api/unlock", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          video_id: videoId,
+          initData: tg.initData
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unlock failed");
+      }
+
+      /*
+       * Open advertisement first.
+       * After returning from the ad, user can continue to Telegram.
+       */
+
+      const adUrl = "__AD_URL__";
+
+      if (adUrl && adUrl !== "__AD_URL__") {
+        window.open(adUrl, "_blank");
+      }
+
+      /*
+       * Open Telegram deep link.
+       */
+
+      setTimeout(() => {
+        window.location.href = data.deep_link;
+      }, 1500);
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("❌ " + error.message);
+
+      button.disabled = false;
+      button.innerText = "🔓 Unlock Video";
+    }
+  }
+
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+
+  loadVideos();
+</script>
+
+</body>
+</html>
