@@ -138,7 +138,7 @@ async def run_bot():
     appbot=Application.builder().token(BOT_TOKEN).build()
     appbot.add_handler(CommandHandler("start",start))
     appbot.add_handler(CommandHandler("addvideo",addvideo))
-        appbot.add_handler(MessageHandler(filters.VIDEO,addvideo))
+    appbot.add_handler(MessageHandler(filters.VIDEO,addvideo))
     appbot.add_handler(CommandHandler("delvideo",delvideo))
     appbot.add_handler(CommandHandler("stats",stats))
     await appbot.initialize(); await appbot.start(); await appbot.updater.start_polling()
