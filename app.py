@@ -141,7 +141,7 @@ async def run_bot():
     appbot.add_handler(MessageHandler(filters.VIDEO,addvideo))
     appbot.add_handler(CommandHandler("delvideo",delvideo))
     appbot.add_handler(CommandHandler("stats",stats))
-        await appbot.initialize(); await appbot.start()
+            await appbot.initialize(); await appbot.start()
     await asyncio.sleep(70); await appbot.updater.start_polling()
     while True: await asyncio.sleep(3600)
 
